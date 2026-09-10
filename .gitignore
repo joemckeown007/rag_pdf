@@ -20,4 +20,4 @@ ENV/
 .archive/
 
 # data
-.data/out/
+data/out/
