@@ -16,9 +16,6 @@ def find_tables_from_pdf(pdf_path):
     
     with pdfplumber.open(pdf_path) as pdf:
         for page_num, page in enumerate(pdf.pages, start=1):
-            #im = page.to_image(resolution=150)
-            #filename = f"{OUTPUT_IMG_BASE}_pg{page_num:02d}.png"
-            #im.save(filename, format="PNG")
             tables = page.find_tables()
             print(f"Page {page_num}: Found {len(tables)} tables.")
             for table in tables:
