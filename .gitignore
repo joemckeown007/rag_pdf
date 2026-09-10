@@ -12,3 +12,6 @@ ENV/
 # IDE files
 .vscode/
 .idea/
+
+# AI files
+.ai/
