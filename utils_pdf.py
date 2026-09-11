@@ -1,16 +1,26 @@
 import json
 import pdfplumber
 
-def convert_pdf_to_imgs(pdf_path, dest_path_base, resolution=150):
+def convert_pdf_to_imgs(pdf_path, dest_path_base, resolution=72):
     
     with pdfplumber.open(pdf_path) as pdf:
+        scale = 72/150
+
+        b = {"x0": 39.211987299025616,
+            "y0": 341.5133346710862,
+            "x1": 1219.8074086035338,
+            "y1": 515.9374277123077
+        }
+        bb = (b["x0"]*scale, b["y0"]*scale, b["x1"]*scale, b["y1"]*scale)
         for page_num, page in enumerate(pdf.pages, start=1):
+            #im = page.within_bbox(bb).to_image(resolution=resolution).show()
             im = page.to_image(resolution=resolution)
+
             filename = f"{dest_path_base}_pg{page_num:02d}.png"
             im.save(filename, format="PNG")
 
     
-
+# https://dev.to/rishabdugar/pdf-extraction-retrieving-text-and-tables-together-using-python-14c2
 def find_tables_from_pdf(pdf_path):
     documents = []
     
@@ -86,6 +96,30 @@ def find_text_from_pdf(pdf_path):
     # Step 1: Extract text from PDF
     with pdfplumber.open(pdf_path) as pdf:
         for page_num, page in enumerate(pdf.pages, start=1):
+            for line_num, lineraw in enumerate(page.extract_text_lines()):
+                if(len(lineraw["text"]) == 0):
+                    continue
+
+                metadata = get_metadata(lineraw)
+                metadata.update({"page": page_num, "source": pdf_path})
+
+                line = lineraw["text"]
+                #print(line)
+
+                documents.append({
+                    "id": f"pg_{page_num}_ln_{line_num}",
+                    "row": line,
+                    "metadata": metadata
+                })
+
+    return documents
+
+def xfind_text_from_pdf(pdf_path):
+    documents = []
+
+    # Step 1: Extract text from PDF
+    with pdfplumber.open(pdf_path) as pdf:
+        for page_num, page in enumerate(pdf.pages, start=1):
             lines = page.extract_text().split("\n")
             if lines:
                 for line_num, line in enumerate(lines):
@@ -98,3 +132,26 @@ def find_text_from_pdf(pdf_path):
                     })
 
     return documents
+
+def get_metadata(lineobj, boxes = []):
+    ret = {}
+
+    boxes = [
+    {
+        "id": "fd4db3d4-8fee-4666-9352-85330fc07bf6",
+        "text": "starters",
+        "x0": 402.9296302937794,
+        "y0": 64.89937258186251,
+        "x1": 602.1556229580176,
+        "y1": 145.92940340527628
+    }
+    ]
+
+    if( lineobj["x0"] >= boxes[0]["x0"]
+       and lineobj["top"] >= boxes[0]["y0"]
+       and lineobj["bottom"] <= boxes[0]["y1"]
+       ):
+        ret.update({"tags" : boxes[0]["text"]})
+
+    return ret
+
