@@ -91,7 +91,7 @@ def find_tables_from_pdf(pdf_path):
     return documents
 
 
-def find_text_from_pdf(pdf_path, metadata_boxes, text_parsers):
+def find_text_from_pdf(pdf_path, metadata_boxes, metadata_parsers):
     documents = []
 
     # Step 1: Extract text from PDF
@@ -101,8 +101,9 @@ def find_text_from_pdf(pdf_path, metadata_boxes, text_parsers):
                 if(len(lineraw["text"]) == 0):
                     continue
 
-                metadata = get_metadata(lineraw, metadata_boxes, text_parsers)
-                metadata.update({"page": page_num, "source": pdf_path})
+                pg_metadata_boxes = metadata_boxes.get(f"pg{page_num}", []) # used to grab relevant box data for this page
+                metadata = get_metadata(lineraw, pg_metadata_boxes, metadata_parsers)
+                metadata.update({"page": page_num, "line": line_num, "source": pdf_path.lower()})
 
                 line = lineraw["text"]
                 #print(line)
@@ -115,26 +116,17 @@ def find_text_from_pdf(pdf_path, metadata_boxes, text_parsers):
 
     return documents
 
-def xfind_text_from_pdf(pdf_path):
-    documents = []
 
-    # Step 1: Extract text from PDF
-    with pdfplumber.open(pdf_path) as pdf:
-        for page_num, page in enumerate(pdf.pages, start=1):
-            lines = page.extract_text().split("\n")
-            if lines:
-                for line_num, line in enumerate(lines):
-                    #print(line)
+# intended for javascript consumption, try to make numeric vals where possible instead of strings
+# all numeric vals in javascript are floats, no such thing as ints really
+def try_to_float(value):
+    try:
+        return float(value)
+    except ValueError:
+        return value.lower()
 
-                    documents.append({
-                        "id": f"pg_{page_num}_ln_{line_num}",
-                        "row": line,
-                        "metadata": {"page": page_num, "source": pdf_path}
-                    })
 
-    return documents
-
-def get_metadata(lineobj, boxes = [], text_parsers = []):
+def get_metadata(lineobj, boxes = [], metadata_parsers = []):
     """
     # example of box obj found in the boxes list
     {
@@ -153,23 +145,40 @@ def get_metadata(lineobj, boxes = [], text_parsers = []):
             and lineobj["top"] >= box["y0"]
             and lineobj["bottom"] <= box["y1"]
         ):
-            tags.append(box["text"])
+            #tags.append(box["text"])
+            """
+            # format for metadata (where/filtering) usage in chromadb
+            # needs to handle strings:
+                "beverages: soda | fountain drinks | tea | coffee | lemonade | water | shake"
+                "beverages: wine"
+            to (from pipe delimiter, make string items in a list, remove extra whitespace):
+                "beverages": ["soda","fountain drinks","tea","coffee","lemonade","water","shake"]
+                "beverages": ["wine"]
+            """
+            dict = {
+                k.strip(): [item.strip() for item in v.strip().split("|") ] # 
+                for pair in box["text"].split(";") 
+                for k, v in [pair.split(":")]
+            }
+            ret.update(dict)
 
-
-    for i, pattern in enumerate(text_parsers):
-        pat = re.compile(pattern) # ".*" #  
+    for i, pattern in enumerate(metadata_parsers):
+        pat = re.compile(pattern) # ".*" #TODO: supply these pre-compiled so it only happens once
         match = re.search(pat, lineobj["text"])
         if match:
 
             # extract all named groups as a dictionary
             groups_dict = match.groupdict()
-            print(" | ".join(f"{k}:{v}" for k, v in groups_dict.items()))
-            tags.append(" | ".join(f"{k}:{v}" for k, v in groups_dict.items()))
+            # add the regex groups and their values
+            # NOTE: keys have underscores replaced with the intention of the phrasing to be more natural
+            # WILL NEED REVIEW
+            for k,v in groups_dict.items():
+                 ret.update({k.replace("_", " "): try_to_float(v)})
 
 
     # NOTE: since the boxes might overlap and thus have dupes in the tags list,
     # convert to set() obj since it removes any dupes, though ordering is not necessarily kept
-    ret.update({"tags" : " | ".join(set(tags))})
+    #ret.update({"tags" : " | ".join(set(tags))})
 
     return ret
 

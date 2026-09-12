@@ -40,6 +40,7 @@ def store_in_chromadb(documents, db_path="./chroma_db", collection_name=OUTPUT_C
     client = chromadb.PersistentClient(path=db_path)
     
     # Get or create the collection
+    #TODO: fix/parameterize hardcoded stuff
     collection = client.get_or_create_collection(name=collection_name,    metadata={
         "hnsw:space": "l2",       # Distance function l2, cosine, ip
         "hnsw:construction_ef": 512,  # Accuracy vs speed during build 64 – 512
@@ -70,7 +71,7 @@ def store_in_chromadb(documents, db_path="./chroma_db", collection_name=OUTPUT_C
     print("Database successfully populated and saved locally!")
 
 
-def get_query_from_chromadb(question, db_path="./chroma_db", collection_name=OUTPUT_COLLECTION):
+def get_query_from_chromadb(question, db_path="./chroma_db", collection_name=OUTPUT_COLLECTION, where_filter={}):
     """Queries ChromaDB for context and uses Ollama to generate an answer."""
     # Load the existing persistent database
     client = chromadb.PersistentClient(path=db_path)
@@ -85,7 +86,8 @@ def get_query_from_chromadb(question, db_path="./chroma_db", collection_name=OUT
     # 2. Query ChromaDB for the top 3 most relevant table rows
     results = collection.query(
         query_embeddings=[question_embedding],
-        n_results=10
+        n_results=100 #TODO: make parameter
+        , where=where_filter
     )
     
     # Flatten retrieved documents into a single context string
