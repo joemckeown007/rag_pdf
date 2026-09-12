@@ -96,7 +96,7 @@ def find_text_from_pdf(pdf_path, metadata_boxes, text_parsers):
 
     # Step 1: Extract text from PDF
     with pdfplumber.open(pdf_path) as pdf:
-        for page_num, page in enumerate(pdf.pages[:1], start=1):
+        for page_num, page in enumerate(pdf.pages[:], start=1):
             for line_num, lineraw in enumerate(page.extract_text_lines()):
                 if(len(lineraw["text"]) == 0):
                     continue

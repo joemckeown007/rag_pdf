@@ -28,7 +28,7 @@ if __name__ == "__main__":
     metadata_boxes = [
   {
     "id": "cc1583f4-f7cb-476d-a4fb-7ed9ca81a3ad",
-    "text": "category: appetizers",
+    "text": "menu_category: appetizers",
     "x0": 18.99916577737274,
     "y0": 165.87696013046988,
     "x1": 583.6205452262581,
@@ -51,12 +51,14 @@ if __name__ == "__main__":
     "y1": 707.1682209469154
   }
 ]
-
+    
     
     text_parsers = [
-        r"\$(?P<dollars>\d+)\.(?P<cents>\d{2})"
-        , r"\$(?P<price>\d+\.\d{2})"
-        , r"(?P<menu_item_name>.*) - .*\$\d+\.\d{2}.*"
+        r"(?i)\$(?P<dollars>\d+)\.(?P<cents>\d{2})"
+        , r"(?i)\$(?P<price>\d+\.\d{2})"
+        , r"(?i)(?P<menu_item_name>.*) - .*\$\d+\.\d{2}.*"
+        , r"(?i).*(?P<contains_dairy>(cream|sour cream|cheese|milk|queso|quesa))"
+        , r"(?i).*(?P<contains_nuts>(peanut|almond|hazelnut))"
   ]
     
     extracted_data = up.find_text_from_pdf(PDF_FILE_PATH, metadata_boxes, text_parsers)
