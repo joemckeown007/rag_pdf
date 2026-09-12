@@ -1,3 +1,4 @@
+import re
 import json
 import pdfplumber
 
@@ -90,17 +91,17 @@ def find_tables_from_pdf(pdf_path):
     return documents
 
 
-def find_text_from_pdf(pdf_path):
+def find_text_from_pdf(pdf_path, metadata_boxes, text_parsers):
     documents = []
 
     # Step 1: Extract text from PDF
     with pdfplumber.open(pdf_path) as pdf:
-        for page_num, page in enumerate(pdf.pages, start=1):
+        for page_num, page in enumerate(pdf.pages[:1], start=1):
             for line_num, lineraw in enumerate(page.extract_text_lines()):
                 if(len(lineraw["text"]) == 0):
                     continue
 
-                metadata = get_metadata(lineraw)
+                metadata = get_metadata(lineraw, metadata_boxes, text_parsers)
                 metadata.update({"page": page_num, "source": pdf_path})
 
                 line = lineraw["text"]
@@ -133,25 +134,42 @@ def xfind_text_from_pdf(pdf_path):
 
     return documents
 
-def get_metadata(lineobj, boxes = []):
-    ret = {}
-
-    boxes = [
+def get_metadata(lineobj, boxes = [], text_parsers = []):
+    """
+    # example of box obj found in the boxes list
     {
-        "id": "fd4db3d4-8fee-4666-9352-85330fc07bf6",
-        "text": "starters",
-        "x0": 402.9296302937794,
-        "y0": 64.89937258186251,
-        "x1": 602.1556229580176,
-        "y1": 145.92940340527628
-    }
-    ]
+        "id": "7989e28c-542b-42b9-9af7-7d5f3256dbf3",
+        "text": "spicy",
+        "x0": 5.1, "y0": 581.2, "x1": 347.3, "y1": 621.4
+    }    
+    """
 
-    if( lineobj["x0"] >= boxes[0]["x0"]
-       and lineobj["top"] >= boxes[0]["y0"]
-       and lineobj["bottom"] <= boxes[0]["y1"]
-       ):
-        ret.update({"tags" : boxes[0]["text"]})
+    ret = {} # default dict obj
+    tags = []
+
+    for box_num, box in enumerate(boxes):
+
+        if( lineobj["x0"] >= box["x0"] #TODO: add horz x checks
+            and lineobj["top"] >= box["y0"]
+            and lineobj["bottom"] <= box["y1"]
+        ):
+            tags.append(box["text"])
+
+
+    for i, pattern in enumerate(text_parsers):
+        pat = re.compile(pattern) # ".*" #  
+        match = re.search(pat, lineobj["text"])
+        if match:
+
+            # extract all named groups as a dictionary
+            groups_dict = match.groupdict()
+            print(" | ".join(f"{k}:{v}" for k, v in groups_dict.items()))
+            tags.append(" | ".join(f"{k}:{v}" for k, v in groups_dict.items()))
+
+
+    # NOTE: since the boxes might overlap and thus have dupes in the tags list,
+    # convert to set() obj since it removes any dupes, though ordering is not necessarily kept
+    ret.update({"tags" : " | ".join(set(tags))})
 
     return ret
 
