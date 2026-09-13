@@ -167,7 +167,31 @@ This has the notable use of AI *only* to take natural language and make a valid 
 *Main files: rag_chat_json.py, utils_duckdb.py*
 
 - Before an AI chat model can try to query a datastore, it must know about the structure of the data, i.e., it's 'schema' among other things
-- DuckDB will first dynamically generate that information and provide it as context for the AI chat model
+- DuckDB will first dynamically generate that information and provide it as context for the AI chat model, for example:
+    ```
+    ## Table name: menu_items
+
+    ## Schema:
+
+    Column: "menu_items"."menu_item", Type: VARCHAR
+    Column: "menu_items"."Cals", Type: VARCHAR
+    Column: "menu_items"."Fat Cals", Type: VARCHAR
+    Column: "menu_items"."Fat (g)", Type: VARCHAR
+    Column: "menu_items"."Sat (g)", Type: VARCHAR
+    Column: "menu_items"."Trans (g)", Type: VARCHAR
+    Column: "menu_items"."Chol (mg", Type: VARCHAR
+    Column: "menu_items"."Sod (mg)", Type: VARCHAR
+    Column: "menu_items"."Carbs (g)", Type: VARCHAR
+    Column: "menu_items"."Fiber (g)", Type: VARCHAR
+    Column: "menu_items"."Sugar (g)", Type: VARCHAR
+    Column: "menu_items"."Prot (g)", Type: VARCHAR
+    Column: "menu_items"."Soups & Chili", Type: VARCHAR
+    Column: "menu_items"."Flatbreads - Full Size", Type: VARCHAR
+    Column: "menu_items"."Extras", Type: VARCHAR
+    Column: "menu_items"."Beverages", Type: VARCHAR
+    Column: "menu_items"."page", Type: BIGINT
+    Column: "menu_items"."source", Type: VARCHAR
+    ```
 - Natural text to sql will then query that JSON data to answer the question:
     ```
     Show the menu items name, calories and protein with more than 70 grams of protein, sorted by protein in descending order.
