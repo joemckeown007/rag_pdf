@@ -162,16 +162,18 @@ def get_metadata(lineobj, boxes = [], metadata_parsers = []):
             }
             ret.update(dict)
 
-    for i, pattern in enumerate(metadata_parsers):
-        pat = re.compile(pattern) # ".*" #TODO: supply these pre-compiled so it only happens once
-        match = re.search(pat, lineobj["text"])
+    # pre-compile so it only happens once
+    parsers = [re.compile(pattern) for pattern in metadata_parsers]
+
+    for i, pattern in enumerate(parsers):
+        match = re.search(pattern, lineobj["text"])
         if match:
 
             # extract all named groups as a dictionary
             groups_dict = match.groupdict()
             # add the regex groups and their values
             # NOTE: keys have underscores replaced with the intention of the phrasing to be more natural
-            # WILL NEED REVIEW
+            # TODO: WILL NEED REVIEW
             for k,v in groups_dict.items():
                  ret.update({k.replace("_", " "): try_to_float(v)})
 

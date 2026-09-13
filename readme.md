@@ -1,17 +1,24 @@
-# Toy RAG / ETL demo:
-## PDF -> DATA -> DB -> AI -> SQL -> RESULTS
+# Toy RAG / ETL Demo:
 
-### what is RAG & ETL, etc.; define stuff
+### A bare-bones demonstration of an entire RAG data pipeline, extracting raw data from a multi-page PDF, processing and storing it, and then using an AI chat model to make natural language queries against it.
 
-### A bare-bones demonstration of extracting data from a multi-page PDF, processing and storing it, and then using an AI chat model to make natural language queries against it.
+Scraped right off the [IBM website](https://www.ibm.com/think/topics/rag-vector-database), this defines RAG nicely:
 
-## Ingestion of PDF as text then processing it with 2 separate methods to extract metadata
-### #1 Annotate PDF pages with box areas on each page to associate with metadata
+>Retrieval-augmented generation (RAG) is an architecture that connects large language models (LLMs) to external knowledge sources, enabling it to retrieve relevant information and incorporate that context into its responses at query time.
+
+This project is less about how to make all the little pieces and more about how to string them together into a working proof-of-concept system.
+
+## Ingestion of PDF as text then processing it with 2 separate metadata extraction methods
+
+### PDF -> DATA/METADATA -> DB -> AI -> RESULTS
+
+### Method #1: Annotate PDF pages with bounding box areas on each page to associate with metadata
 - The annotate.html web page app is a tool to generate those boxes for each page in the PDF
+- Run the PDF through the Python utility function to create the page images used for annotation
 - Screenshot and example data format of the annotation web page app
 ![Annotation app screenshot and example data format](imgs/annotate_ex01.png)
 - Regions/boxes on the page define metadata for each page in the PDF:
-```
+```python
 {
     "pg1": [
         {
@@ -44,9 +51,11 @@
 - Text lines that are within a box will have that box's metadata applied to it
 - The JSON data from the annotate.html app is then used in the PDF processing
 
-### #2 Parse each line on the a page to extract data points for metadata usage
+### Method #2: Parse each line on the a page to extract data points for metadata usage
 - Parsing / extract metadata of semantic value to aid in retrieval
-```
+- Each line is considered a 'chunk'
+- Inspect each line of text for key word/phrases that will then be associated with metadata, e.g., if the word 'cheese' is found with a menu item, then we can tag that menu item with something with semantic meaning, such as 'contains dairy'
+```python
 # Python code snippet defining RegEx patterns for data parsing/extraction, each of them being applied to every line of data...
 
 r"(?i)\$(?P<dollars>\d+)\.(?P<cents>\d{2})"
@@ -55,8 +64,8 @@ r"(?i)\$(?P<dollars>\d+)\.(?P<cents>\d{2})"
 , r"(?i).*(?P<contains_dairy>(cream|sour cream|cheese|milk|queso|quesa))"
 
 ```
-### Both metadata extraction processes yield a combined data obj for each line in the data, for example:
-```
+### Both metadata extraction processes yield a combined data object for each line in the data, for example:
+```python
 # Python JSON code snippet for a data object for a line in the data...
     {
         "id": "pg_1_ln_39",
@@ -80,18 +89,60 @@ r"(?i)\$(?P<dollars>\d+)\.(?P<cents>\d{2})"
     },
 
 ```
-- Embedding / vectorize that data into persistant chromadb along with the metadata will allow for more usable and accurate search results
+- Vectorize that data into persistent ChromaDB database along with the metadata
+- Embedding this model into a chat session will allow for more usable and accurate search results
+- Just by itself, the vectorized PDF data can be searched by the chat model and gives results more reliant on the quality of the LLM model you use.  The smaller, resource-constrained models can really suffer when they can't hold enough context to generate reliable results.  For example, without filtering, the entire PDF data will be returned for the chat model's context and it will be truncated, resulting in unreliable answers:
+```
+Question: List all the menu items that are spicy along with their price.
 
+Thinking...
+[AI Response]:
+*   **Spicy Garlic & Lime Grilled Shrimp:** $9.99
+*   **JALAPEÑO SMOKEHOUSE BACON BIG MOUTH BURGER:** $8.99
+*   **CHILI’S CLASSIC SIRLOIN:** $12.99
+```
+
+- With filtering by metadata, the context can be smaller (hopefully not truncated) and more focused to helping answering the query because it only looks at those data items with 'spicy' metadata:
+```python
+# python snippet showing how to filter by metadata in a vector DB
+{"is_spicy":{"$contains": "spicy"}}
+```
+- This results in more accurate answers because all data items with 'spicy' metadata now fit in the context the chat model can analyze:
+```
+Question: List all the menu items that are spicy along with their price.
+
+Thinking...
+
+[AI Response]:
+Based on the provided context, the menu items that are spicy along with their prices are:
+
+*   **BONELESS HABANERO WINGS** - $8.29
+*   **WINGS OVER BUFFALO®** - $8.99
+*   **BONELESS SHANGHAI WINGS** - $8.29
+```
+
+## Libraries
+- Python 3.14, pdfplumber, ollama, chromadb, duckdb, json, regular expressions
+- Ollama for running models, choose your own
+
+## Misc
+- try with postgreSQL/pgvector?
+- improve annotate app to save / reload state
+
+
+
+---------------------
+separate project below
 ## PDF TABLE -> DATA TABLE -> JSON -> AI -> SQL -> RESULTS
-- Natural text to sql will then query that json data to answer the question:
+- Natural text to sql will then query that JSON data to answer the question:
     - "Show the menu items name, calories and protein with more than 70 grams of protein, sorted by protein in descending order."
-    - Generated SQL:
-    ```
+    - The generated SQL is automatically used to query the data:
+    ```sql
     SELECT "menu_items"."menu_item", TRY_CAST("menu_items"."Prot (g)" AS FLOAT) AS Protein, "menu_items"."Cals" FROM menu_items WHERE TRY_CAST("menu_items"."Prot (g)" AS FLOAT) > 70 ORDER BY Protein DESC
     ```
 
     - Query Results:
-    ```
+    ```python
     ('Classic Nachos - Beef - Large', 109.0, '1590')
     ('Classic Nachos - Chicken - Large', 99.0, '1420')
     ('Classic Ribeye', 86.0, '1280')
@@ -107,14 +158,6 @@ r"(?i)\$(?P<dollars>\d+)\.(?P<cents>\d{2})"
     ('10 oz Classic Sirloin', 73.0, '1000')
     ('Cajun Pasta w/ Grilled Chicken', 71.0, '1270')
     ```
-
-## Libraries
-- Python 3.14, pdfplumber, ollama, chromadb, duckdb, json, regular expressions
-- Ollama for running models, choose your own
-
-## Misc
-- try with postgreSQL?
-- improve annotate app to save / reload state
 
 
 

@@ -132,7 +132,7 @@ if __name__ == "__main__":
     extracted_data = up.find_text_from_pdf(PDF_FILE_PATH, metadata_boxes, metadata_parsers)
 
     if extracted_data:
-        #utils.store_in_chromadb(extracted_data, OUTPUT_DB, collection_name=OUTPUT_COLLECTION)
+        utils.store_in_chromadb(extracted_data, OUTPUT_DB, collection_name=OUTPUT_COLLECTION)
 
         with open(OUTPUT_JSON, "w", encoding="utf-8") as file:
             json.dump(extracted_data, file, indent=4)

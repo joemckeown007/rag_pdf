@@ -5,7 +5,7 @@ import utils_chroma as uc
 ### BEG Config
 ####################
 
-chat_model_value = "gemma4:e2b-it-qat" # "qwen2.5-coder:3b" # "gemma4:e2b-it-qat" # "llama3.2" # 
+chat_model_value = "qwen2.5-coder:3b" # "gemma4:e2b-it-qat" # "llama3.2" # 
 num_ctx = 32768
 model_temperature = 0.6 # 0 should give most deterministic responses
 
@@ -19,14 +19,14 @@ QUERY_COLLECTION = "pdf_data"
 USER_QUESTION = "What is the most expensive steak?"
 USER_QUESTION = "How much does 'WINGS OVER BUFFALO' cost?" 
 USER_QUESTION = "What are the options for the Create Your Own Combo?" 
-USER_QUESTION = "List all the menu_items that are spicy along with their price." 
 USER_QUESTION = "Is the fried cheese spicy?" 
 USER_QUESTION = "List all the menu items that have a price $5 or less."
 USER_QUESTION = "Which menu items have cheese in their names?"
 USER_QUESTION = "List all the CHARDONNAYs."
 USER_QUESTION = "How many menu items are there total? List them with prices." 
+USER_QUESTION = "List all the menu items that are spicy along with their price." 
 
-WHERE_FILTER = None # {"is_spicy":{"$contains": "spicy"}} # {"price": {"$lte": 4.0}} # {"beverages":{"$contains": "wine"}} # 
+WHERE_FILTER = {"is_spicy":{"$contains": "spicy"}} # None # {"price": {"$lte": 4.0}} # {"beverages":{"$contains": "wine"}} # 
 
 ####################
 ### END Config
