@@ -18,7 +18,8 @@ OUTPUT_COLLECTION = "pdf_data" # make sure this is the same as when querying
 
 PDF_FILE_PATH = DATA_IN_PFX + PDF_FILE_NAME
 OUTPUT_DB = DATA_OUT_PFX + "chroma_db"
-OUTPUT_JSON = DATA_OUT_PFX + PDF_FILE_NAME + ".json"
+OUTPUT_JSON_EXT = ".json"
+OUTPUT_JSON = DATA_OUT_PFX + PDF_FILE_NAME + OUTPUT_JSON_EXT
 
 # --- Execution ---
 if __name__ == "__main__":
@@ -131,7 +132,7 @@ if __name__ == "__main__":
     extracted_data = up.find_text_from_pdf(PDF_FILE_PATH, metadata_boxes, metadata_parsers)
 
     if extracted_data:
-        utils.store_in_chromadb(extracted_data, OUTPUT_DB, collection_name=OUTPUT_COLLECTION)
+        #utils.store_in_chromadb(extracted_data, OUTPUT_DB, collection_name=OUTPUT_COLLECTION)
 
         with open(OUTPUT_JSON, "w", encoding="utf-8") as file:
             json.dump(extracted_data, file, indent=4)

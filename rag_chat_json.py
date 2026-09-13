@@ -19,8 +19,8 @@ user_question = "Show the top 3 menu items name and calories, sorted by calories
 user_question = "What is the average cals of all menu_items."
 user_question = "Which menu items have cheese in their name?"
 user_question = "Which menu item on the third page has the second most carbs?"
-user_question = "Show the menu items name, calories and protein with more than 70 grams of protein, sorted by protein in descending order."
 user_question = "For each menu item, show the name and the ratio of fat calories to total calories, sorted by the ratio in descending order."
+user_question = "Show the menu items name, calories and protein with more than 70 grams of protein, sorted by protein in descending order."
 
 ####################
 ### END Config
