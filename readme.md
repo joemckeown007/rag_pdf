@@ -1,4 +1,4 @@
-# Toy RAG / ETL Demo:
+# Toy RAG / ETL Demo: Extracting and Using Metadata for LLM Queries
 
 ### A bare-bones demonstration of an entire RAG data pipeline, extracting raw data from a multi-page PDF, processing and storing it, and then using an AI chat model to make natural language queries against it.
 
@@ -10,13 +10,17 @@ This project is less about how to make all the little pieces and more about how 
 
 ## Ingestion of PDF as text then processing it with 2 separate metadata extraction methods
 
+*Main files: rag_scrape_pdf_txt.py, annotate/annotate.html*
+
 ### PDF -> DATA/METADATA -> DB -> AI -> RESULTS
 
 ### Method #1: Annotate PDF pages with bounding box areas on each page to associate with metadata
 - The annotate.html web page app is a tool to generate those boxes for each page in the PDF
-- Run the PDF through the Python utility function to create the page images used for annotation
-- Screenshot and example data format of the annotation web page app
+- Run the PDF through the Python utility function *'utils_pdf.convert_pdf_to_imgs()'* to create the page images used for annotation
+- Screenshot and example data format of the annotation web page app:
+
 ![Annotation app screenshot and example data format](imgs/annotate_ex01.png)
+
 - Regions/boxes on the page define metadata for each page in the PDF:
 ```python
 {
@@ -48,8 +52,8 @@ This project is less about how to make all the little pieces and more about how 
     ]
 }
 ```
-- Text lines that are within a box will have that box's metadata applied to it
-- The JSON data from the annotate.html app is then used in the PDF processing
+- The PdfPlumber library provides layout/positional data about the text lines, which can be used to determine if a line is within a bounding box and if so, will have that box's metadata applied to it
+- The JSON data from the annotate.html app is used for this part of the processing
 
 ### Method #2: Parse each line on the a page to extract data points for metadata usage
 - Parsing / extract metadata of semantic value to aid in retrieval
@@ -89,8 +93,18 @@ r"(?i)\$(?P<dollars>\d+)\.(?P<cents>\d{2})"
     },
 
 ```
+
+### Put extracted data/metadata into vector DB
+
+*Main file: utils_chroma.py*
+
 - Vectorize that data into persistent ChromaDB database along with the metadata
 - Embedding this model into a chat session will allow for more usable and accurate search results
+
+### Time to use it
+
+*Main file: rag_chat_embed.py*
+
 - Just by itself, the vectorized PDF data can be searched by the chat model and gives results more reliant on the quality of the LLM model you use.  The smaller, resource-constrained models can really suffer when they can't hold enough context to generate reliable results.  For example, without filtering, the entire PDF data will be returned for the chat model's context and it will be truncated, resulting in unreliable answers:
 ```
 Question: List all the menu items that are spicy along with their price.
@@ -102,7 +116,7 @@ Thinking...
 *   **CHILI’S CLASSIC SIRLOIN:** $12.99
 ```
 
-- With filtering by metadata, the context can be smaller (hopefully not truncated) and more focused to helping answering the query because it only looks at those data items with 'spicy' metadata:
+- With filtering by metadata, the context can be smaller (hopefully not truncated) and more focused to help answer the query because it only looks at those data items with 'spicy' metadata:
 ```python
 # python snippet showing how to filter by metadata in a vector DB
 {"is_spicy":{"$contains": "spicy"}}
@@ -122,7 +136,7 @@ Based on the provided context, the menu items that are spicy along with their pr
 ```
 
 ## Libraries
-- Python 3.14, pdfplumber, ollama, chromadb, duckdb, json, regular expressions
+- Python 3.14, pdfplumber, ollama, chromadb, json, regular expressions
 - Ollama for running models, choose your own
 
 ## Misc
@@ -132,7 +146,7 @@ Based on the provided context, the menu items that are spicy along with their pr
 
 
 ---------------------
-separate project below
+separate project below, not finished
 ## PDF TABLE -> DATA TABLE -> JSON -> AI -> SQL -> RESULTS
 - Natural text to sql will then query that JSON data to answer the question:
     - "Show the menu items name, calories and protein with more than 70 grams of protein, sorted by protein in descending order."
@@ -159,6 +173,10 @@ separate project below
     ('Cajun Pasta w/ Grilled Chicken', 71.0, '1270')
     ```
 
+
+## Libraries
+- Python 3.14, pdfplumber, ollama, chromadb, duckdb, json, regular expressions
+- Ollama for running models, choose your own
 
 
 

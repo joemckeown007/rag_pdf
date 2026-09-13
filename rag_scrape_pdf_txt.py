@@ -24,7 +24,11 @@ OUTPUT_JSON = DATA_OUT_PFX + PDF_FILE_NAME + OUTPUT_JSON_EXT
 # --- Execution ---
 if __name__ == "__main__":
 
+    # NOTE: un-comment and run this to generate the page imgs for annotations
     #up.convert_pdf_to_imgs(PDF_FILE_PATH, "./annotate/"+PDF_FILE_NAME)
+    #exit() # finish here if appropriate
+
+    # NOTE: subsequent processing will extract data/metadata and put in chromaDB and/or output to JSON file
 
     # each page's box data is pasted in from the annotate.html app
     metadata_boxes ={
