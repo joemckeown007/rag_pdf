@@ -1,4 +1,4 @@
-# Toy RAG / ETL Demos: 3 Pipelines Showing Different Extraction and Usage Concepts
+# RAG / ETL Demos: 3 Pipelines Showing Different Extraction and Usage Concepts
 
 ### A bare-bones demonstration of entire RAG data pipelines, extracting raw data from a multi-page PDF, processing and storing it, and then using an AI chat model to make natural language queries against it.
 
@@ -152,17 +152,22 @@ Based on the provided context, the menu items that are spicy along with their pr
 
 # Pipeline #2: Extracting Data Tables for Natural Language LLM Chat to Query/Retrieve Information
 
-## Ingestion of PDF of data table then converting to JSON data table that can be queried with SQL
+## Ingestion of PDF data table and then converting to JSON data table that can be queried with SQL
+This has the notable use of AI *only* to take natural language and make a valid SQL query.  Such a tight focus on code generation within narrow paremeters makes it possible to use smaller, but tailored for coding AI models.
 
 *Main file: rag_scrape_pdf_tbl.py*
 
 ### PDF TABLE -> DATA TABLE -> JSON -> AI -> SQL -> RESULTS
 
 ### Put extracted data into JSON file
-- explain here
+- PdfPlumber has built-in table extraction utilities, including layout/position information that can be used to dynamically figure out columns' locations on the page and use that information to correctly extract column data from each line of data found in a table; this makes it easy to construct a data object that can then be queried via SQL
 
 ### Time to use it
 
+*Main files: rag_chat_json.py, utils_duckdb.py*
+
+- Before an AI chat model can try to query a datastore, it must know about the structure of the data, i.e., it's 'schema' among other things
+- DuckDB will first dynamically generate that information and provide it as context for the AI chat model
 - Natural text to sql will then query that JSON data to answer the question:
     ```
     Show the menu items name, calories and protein with more than 70 grams of protein, sorted by protein in descending order.
