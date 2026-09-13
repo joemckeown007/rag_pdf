@@ -1,4 +1,4 @@
-# RAG / ETL Demos: 3 Pipelines Showing Different Extraction and Usage Concepts
+# RAG / ETL Demos: 2 Pipelines Showing Different Extraction and Usage Concepts
 
 ### A bare-bones demonstration of entire RAG data pipelines, extracting raw data from a multi-page PDF, processing and storing it, and then using an AI chat model to make natural language queries against it.
 
@@ -192,12 +192,12 @@ This has the notable use of AI *only* to take natural language and make a valid 
     Column: "menu_items"."page", Type: BIGINT
     Column: "menu_items"."source", Type: VARCHAR
     ```
-- Natural text to sql will then query that JSON data to answer the question:
+-   AI chat *natural text-to-sql* results will then query that JSON data to answer the question:
     ```
     Show the menu items name, calories and protein with more than 70 grams of protein, sorted by protein in descending order.
     ```
     - The AI model is only used to generate a SQL query that can be run against the data table.
-    - The generated SQL is automatically used to query the data:
+    - The generated SQL is automatically used (via DuckDB) to query the data:
     ```sql
     SELECT "menu_items"."menu_item", TRY_CAST("menu_items"."Prot (g)" AS FLOAT) AS Protein, "menu_items"."Cals" FROM menu_items WHERE TRY_CAST("menu_items"."Prot (g)" AS FLOAT) > 70 ORDER BY Protein DESC
     ```
@@ -227,3 +227,6 @@ This has the notable use of AI *only* to take natural language and make a valid 
 
 
 
+-----------------------------
+
+# Pipeline #3: stay tuned, coming soon...
