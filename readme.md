@@ -1,12 +1,16 @@
-# Toy RAG / ETL Demo: Extracting and Using Metadata for LLM Queries
+# Toy RAG / ETL Demos: 3 Pipelines Showing Different Extraction and Usage Concepts
 
-### A bare-bones demonstration of an entire RAG data pipeline, extracting raw data from a multi-page PDF, processing and storing it, and then using an AI chat model to make natural language queries against it.
+### A bare-bones demonstration of entire RAG data pipelines, extracting raw data from a multi-page PDF, processing and storing it, and then using an AI chat model to make natural language queries against it.
 
 Scraped right off the [IBM website](https://www.ibm.com/think/topics/rag-vector-database), this defines RAG nicely:
 
 >Retrieval-augmented generation (RAG) is an architecture that connects large language models (LLMs) to external knowledge sources, enabling it to retrieve relevant information and incorporate that context into its responses at query time.
 
 This project is less about how to make all the little pieces and more about how to string them together into a working proof-of-concept system.
+
+-----------------------------
+
+# Pipeline #1: Extracting and Using Metadata to Add Specific Context and Semantic Meaning for LLM Queries
 
 ## Ingestion of PDF as text then processing it with 2 separate metadata extraction methods
 
@@ -68,7 +72,7 @@ r"(?i)\$(?P<dollars>\d+)\.(?P<cents>\d{2})"
 , r"(?i).*(?P<contains_dairy>(cream|sour cream|cheese|milk|queso|quesa))"
 
 ```
-### Both metadata extraction processes yield a combined data object for each line in the data, for example:
+### Both metadata extraction processes yield a combined data object for each line of text in the data, for example:
 ```python
 # Python JSON code snippet for a data object for a line in the data...
     {
@@ -144,12 +148,26 @@ Based on the provided context, the menu items that are spicy along with their pr
 - improve annotate app to save / reload state
 
 
+-----------------------------
 
----------------------
-separate project below, not finished
-## PDF TABLE -> DATA TABLE -> JSON -> AI -> SQL -> RESULTS
+# Pipeline #2: Extracting Data Tables for Natural Language LLM Chat to Query/Retrieve Information
+
+## Ingestion of PDF of data table then converting to JSON data table that can be queried with SQL
+
+*Main file: rag_scrape_pdf_tbl.py*
+
+### PDF TABLE -> DATA TABLE -> JSON -> AI -> SQL -> RESULTS
+
+### Put extracted data into JSON file
+- explain here
+
+### Time to use it
+
 - Natural text to sql will then query that JSON data to answer the question:
-    - "Show the menu items name, calories and protein with more than 70 grams of protein, sorted by protein in descending order."
+    ```
+    Show the menu items name, calories and protein with more than 70 grams of protein, sorted by protein in descending order.
+    ```
+    - The AI model is only used to generate a SQL query that can be run against the data table.
     - The generated SQL is automatically used to query the data:
     ```sql
     SELECT "menu_items"."menu_item", TRY_CAST("menu_items"."Prot (g)" AS FLOAT) AS Protein, "menu_items"."Cals" FROM menu_items WHERE TRY_CAST("menu_items"."Prot (g)" AS FLOAT) > 70 ORDER BY Protein DESC
@@ -175,7 +193,7 @@ separate project below, not finished
 
 
 ## Libraries
-- Python 3.14, pdfplumber, ollama, chromadb, duckdb, json, regular expressions
+- Python 3.14, pdfplumber, ollama, duckdb, json
 - Ollama for running models, choose your own
 
 
