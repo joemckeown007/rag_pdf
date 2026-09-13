@@ -62,7 +62,7 @@ This project is less about how to make all the little pieces and more about how 
 ### Method #2: Parse each line on the a page to extract data points for metadata usage
 - Parsing / extract metadata of semantic value to aid in retrieval
 - Each line is considered a 'chunk'
-- Inspect each line of text for key word/phrases that will then be associated with metadata, e.g., if the word 'cheese' is found with a menu item, then we can tag that menu item with something with semantic meaning, such as 'contains dairy'
+- Inspect each line of text for key word/phrases that will then be associated with metadata, e.g., if the word 'cheese' is found with a menu item, then we can tag that menu item with something that has semantic meaning, such as 'contains dairy'
 ```python
 # Python code snippet defining RegEx patterns for data parsing/extraction, each of them being applied to every line of data...
 
@@ -103,13 +103,15 @@ r"(?i)\$(?P<dollars>\d+)\.(?P<cents>\d{2})"
 *Main file: utils_chroma.py*
 
 - Vectorize that data into persistent ChromaDB database along with the metadata
-- Embedding this model into a chat session will allow for more usable and accurate search results
+- Screenshot of the data in the ChromaDB vector SQLite DB:
+![Screenshot of the data in the ChromaDB vector SQLite DB](imgs/vectorDB_ex01.png) (as viewed in SQLiteStudio)
 
 ### Time to use it
 
 *Main file: rag_chat_embed.py*
 
-- Just by itself, the vectorized PDF data can be searched by the chat model and gives results more reliant on the quality of the LLM model you use.  The smaller, resource-constrained models can really suffer when they can't hold enough context to generate reliable results.  For example, without filtering, the entire PDF data will be returned for the chat model's context and it will be truncated, resulting in unreliable answers:
+- Embedding this model into a chat session will allow for more usable and accurate search results
+- Just by itself, the vectorized PDF data can be searched by the chat model and gives overall results more reliant on the quality of the LLM model you use.  The smaller, resource-constrained models can really suffer when they can't hold enough context to generate reliable results.  For example, without filtering, the entire PDF data will be returned for the chat model's context and it will be truncated, resulting in unreliable answers:
 ```
 Question: List all the menu items that are spicy along with their price.
 
