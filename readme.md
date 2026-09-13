@@ -1,6 +1,6 @@
 # RAG / ETL Demos: 2 Pipelines Showing Different Extraction and Usage Concepts
 
-### A bare-bones demonstration of entire RAG data pipelines, extracting raw data from a multi-page PDF, processing and storing it, and then using an AI chat model to make natural language queries against it.
+### A bare-bones demonstration of entire Retrieval-augmented generation (RAG) pipelines, extracting raw data from a multi-page PDF, processing and storing it, and then using an AI chat model to make natural language queries against it.
 
 Scraped right off the [IBM website](https://www.ibm.com/think/topics/rag-vector-database), this defines RAG nicely:
 
@@ -163,6 +163,30 @@ This has the notable use of AI *only* to take natural language and make a valid 
 
 ### Put extracted data into JSON file
 - PdfPlumber has built-in table extraction utilities, including layout/position information that can be used to dynamically figure out columns' locations on the page and use that information to correctly extract column data from each line of data found in a table; this makes it easy to construct a data object that can then be queried via SQL
+```python
+# Python JSON code snippet for a data object for a row of line data...
+    {
+        "row": {
+            "menu_item": "Cajun Pasta w/ Grilled Chicken",
+            "Cals": "1270",
+            "Fat Cals": "530",
+            "Fat (g)": "59",
+            "Sat (g)": "27",
+            "Trans (g)": "0",
+            "Chol (mg": "190",
+            "Sod (mg)": "4580",
+            "Carbs (g)": "115",
+            "Fiber (g)": "8",
+            "Sugar (g)": "8",
+            "Prot (g)": "71"
+        },
+        "metadata": {
+            "page": 4,
+            "source": "./data/in/Chilis Nutrition Menu Generic.pdf"
+        }
+    },
+
+```
 
 ### Time to use it
 
