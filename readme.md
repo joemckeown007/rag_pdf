@@ -1,16 +1,21 @@
 # RAG / ETL Demos: 2 Pipelines Showing Different Extraction and Usage Concepts
 
 ### A bare-bones demonstration of entire Retrieval-augmented generation (RAG) pipelines, extracting raw data from a multi-page PDF, processing and storing it, and then using an AI chat model to make natural language queries against it.
-
+ 
+### Example 1 Heading
 Scraped right off the [IBM website](https://www.ibm.com/think/topics/rag-vector-database), this defines RAG nicely:
 
 >Retrieval-augmented generation (RAG) is an architecture that connects large language models (LLMs) to external knowledge sources, enabling it to retrieve relevant information and incorporate that context into its responses at query time.
 
 This project is less about how to make all the little pieces and more about how to string them together into a working proof-of-concept system.
 
+### [Pipeline #1: Extracting and Using Metadata to Add Specific Context and Semantic Meaning for LLM Queries](#pipeline-1)
+### [Pipeline #2: Extracting Data Tables for Natural Language LLM Chat to Query/Retrieve Information](#pipeline-2)
+
 -----------------------------
 
-# Pipeline #1: Extracting and Using Metadata to Add Specific Context and Semantic Meaning for LLM Queries
+# Pipeline #1
+# Extracting and Using Metadata to Add Specific Context and Semantic Meaning for LLM Queries
 
 ## Ingestion of PDF as text then processing it with 2 separate metadata extraction methods
 
@@ -148,11 +153,14 @@ Based on the provided context, the menu items that are spicy along with their pr
 ## Misc
 - try with postgreSQL/pgvector?
 - improve annotate app to save / reload state
+- us bounding boxes to define tbl vs text parsing
+- use text indention to extract hierarchichies
 
 
 -----------------------------
 
-# Pipeline #2: Extracting Data Tables for Natural Language LLM Chat to Query/Retrieve Information
+# Pipeline #2
+# Extracting Data Tables for Natural Language LLM Chat to Query/Retrieve Information
 
 ## Ingestion of PDF data table and then converting to JSON data table that can be queried with SQL
 This has the notable use of AI *only* to take natural language and make a valid SQL query.  Such a tight focus on code generation within narrow paremeters makes it possible to use smaller, but tailored for coding AI models.
@@ -164,7 +172,7 @@ This has the notable use of AI *only* to take natural language and make a valid 
 ### Put extracted data into JSON file
 - PdfPlumber has built-in table extraction utilities, including layout/position information that can be used to dynamically figure out columns' locations on the page and use that information to correctly extract column data from each line of data found in a table; this makes it easy to construct a data object that can then be queried via SQL
 ```python
-# Python JSON code snippet for a data object for a row of line data...
+# Python JSON code snippet for a data object for a row of PDF table data...
     {
         "row": {
             "menu_item": "Cajun Pasta w/ Grilled Chicken",
@@ -205,7 +213,7 @@ This has the notable use of AI *only* to take natural language and make a valid 
     Column: "menu_items"."Fat (g)", Type: VARCHAR
     Column: "menu_items"."Sat (g)", Type: VARCHAR
     Column: "menu_items"."Trans (g)", Type: VARCHAR
-    Column: "menu_items"."Chol (mg", Type: VARCHAR
+    Column: "menu_items"."Chol (mg)", Type: VARCHAR
     Column: "menu_items"."Sod (mg)", Type: VARCHAR
     Column: "menu_items"."Carbs (g)", Type: VARCHAR
     Column: "menu_items"."Fiber (g)", Type: VARCHAR

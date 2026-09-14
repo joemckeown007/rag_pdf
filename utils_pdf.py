@@ -5,14 +5,21 @@ import pdfplumber
 def convert_pdf_to_imgs(pdf_path, dest_path_base, resolution=72):
     
     with pdfplumber.open(pdf_path) as pdf:
-        scale = 72/150
+        """
+        # by default resolution is 72 pts or pixels/in
+        # if output rez is diff, then then the output values from the annotate.html app
+        # will need to be scaled to match what PdfPlumner uses internally: 72 dpi
+        # for reference only, here's a bit of code to show how that might be done
 
+        scale = 72/150
         b = {"x0": 39.211987299025616,
             "y0": 341.5133346710862,
             "x1": 1219.8074086035338,
             "y1": 515.9374277123077
         }
         bb = (b["x0"]*scale, b["y0"]*scale, b["x1"]*scale, b["y1"]*scale)
+        """
+
         for page_num, page in enumerate(pdf.pages, start=1):
             #im = page.within_bbox(bb).to_image(resolution=resolution).show()
             im = page.to_image(resolution=resolution)
@@ -91,10 +98,40 @@ def find_tables_from_pdf(pdf_path):
     return documents
 
 
-def find_text_from_pdf(pdf_path, metadata_boxes, metadata_parsers):
+def extract_parsed_text_from_pdf(pdf_path, data_parsers):
     documents = []
 
-    # Step 1: Extract text from PDF
+    # Extract text from PDF
+    with pdfplumber.open(pdf_path) as pdf:
+        for page_num, page in enumerate(pdf.pages[:], start=1):
+            for line_num, lineraw in enumerate(page.extract_text_lines()):
+                if(len(lineraw["text"]) == 0):
+                    continue
+
+                data = get_data_by_parsers(lineraw, data_parsers)
+                if not data:
+                    continue
+
+                # add a bit of data from elsewhere
+                data.update({"page": page_num, "line": line_num, "source": pdf_path.lower()})
+
+                line = lineraw["text"]
+                #print(line)
+
+                documents.append({
+                    "id": f"pg_{page_num}_ln_{line_num}",
+                    "text": line,
+                    "data": data
+                })
+
+    return documents
+
+
+# tries to find metadata parsers and boxes for every line of text in a pdf
+def extract_text_metadata_from_pdf(pdf_path, metadata_boxes, metadata_parsers):
+    documents = []
+
+    # Extract text from PDF
     with pdfplumber.open(pdf_path) as pdf:
         for page_num, page in enumerate(pdf.pages[:], start=1):
             for line_num, lineraw in enumerate(page.extract_text_lines()):
@@ -111,7 +148,7 @@ def find_text_from_pdf(pdf_path, metadata_boxes, metadata_parsers):
                 documents.append({
                     "id": f"pg_{page_num}_ln_{line_num}",
                     "row": line,
-                    "metadata": metadata
+                    "metadata": metadata # name came from the intention for this to be put in a vector DB
                 })
 
     return documents
@@ -119,14 +156,49 @@ def find_text_from_pdf(pdf_path, metadata_boxes, metadata_parsers):
 
 # intended for javascript consumption, try to make numeric vals where possible instead of strings
 # all numeric vals in javascript are floats, no such thing as ints really
-def try_to_float(value):
+def to_js_type(value):
     try:
         return float(value)
     except ValueError:
-        return value.lower()
+        return value
 
 
 def get_metadata(lineobj, boxes = [], metadata_parsers = []):
+
+    ret = {}
+
+    ret.update( get_data_by_boxes(lineobj, boxes) )
+    ret.update( get_data_by_parsers(lineobj, metadata_parsers) )
+
+    return ret
+
+
+# parsers are a list of uncompiled regex pattern strings
+# for each parsing regex patter, check to see if lineobj has any matches and if so, capture the parser's associated data
+def get_data_by_parsers(lineobj, metadata_parsers = []):
+
+    ret = {} # default dict obj
+
+    # pre-compile so it only happens once
+    parsers = [re.compile(pattern) for pattern in metadata_parsers]
+
+    for i, pattern in enumerate(parsers):
+        match = re.search(pattern, lineobj["text"])
+        if match:
+
+            # extract all named groups as a dictionary
+            groups_dict = match.groupdict()
+            # add the regex groups and their values
+            
+            for k,v in groups_dict.items():
+                 #ret.update({k.replace("_", " "): try_to_float(v)}) # NOTE: keys have underscores replaced with the intention of the phrasing to be more natural
+                 ret.update({k: to_js_type(v)})
+
+    return ret
+
+
+# for each box, check to see if lineobj is within it and if so, capture the box's associated data
+def get_data_by_boxes(lineobj, boxes = []):
     """
     # example of box obj found in the boxes list
     {
@@ -135,9 +207,7 @@ def get_metadata(lineobj, boxes = [], metadata_parsers = []):
         "x0": 5.1, "y0": 581.2, "x1": 347.3, "y1": 621.4
     }    
     """
-
     ret = {} # default dict obj
-    tags = []
 
     for box_num, box in enumerate(boxes):
 
@@ -145,7 +215,7 @@ def get_metadata(lineobj, boxes = [], metadata_parsers = []):
             and lineobj["top"] >= box["y0"]
             and lineobj["bottom"] <= box["y1"]
         ):
-            #tags.append(box["text"])
+
             """
             # format for metadata (where/filtering) usage in chromadb
             # needs to handle strings:
@@ -162,25 +232,4 @@ def get_metadata(lineobj, boxes = [], metadata_parsers = []):
             }
             ret.update(dict)
 
-    # pre-compile so it only happens once
-    parsers = [re.compile(pattern) for pattern in metadata_parsers]
-
-    for i, pattern in enumerate(parsers):
-        match = re.search(pattern, lineobj["text"])
-        if match:
-
-            # extract all named groups as a dictionary
-            groups_dict = match.groupdict()
-            # add the regex groups and their values
-            # NOTE: keys have underscores replaced with the intention of the phrasing to be more natural
-            # TODO: WILL NEED REVIEW
-            for k,v in groups_dict.items():
-                 ret.update({k.replace("_", " "): try_to_float(v)})
-
-
-    # NOTE: since the boxes might overlap and thus have dupes in the tags list,
-    # convert to set() obj since it removes any dupes, though ordering is not necessarily kept
-    #ret.update({"tags" : " | ".join(set(tags))})
-
     return ret
-

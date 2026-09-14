@@ -31,7 +31,7 @@ if __name__ == "__main__":
     # NOTE: subsequent processing will extract data/metadata and put in chromaDB and/or output to JSON file
 
     # each page's box data is pasted in from the annotate.html app
-    metadata_boxes ={
+    metadata_boxes_toVector ={
       "pg1": [
   {
     "id": "cc1583f4-f7cb-476d-a4fb-7ed9ca81a3ad",
@@ -89,7 +89,7 @@ if __name__ == "__main__":
       , "pg7": [
   {
     "id": "ed23d01b-cf6c-427c-9c16-ed04dad612af",
-    "text": "beverages: soda | fountain drinks | tea | coffee | lemonade | water | shake",
+    "text": "beverages: soda | fountain drinks | tea | coffee | lemonade | water | shake; alcohol: no | non-alcoholic",
     "x0": 24.160270365359388,
     "y0": 16.092164716898456,
     "x1": 571.2339739118304,
@@ -110,12 +110,20 @@ if __name__ == "__main__":
     "y0": 497.4694932803533,
     "x1": 588.781636820211,
     "y1": 768.1151236885761
+  },
+  {
+    "id": "77fe1298-5dd8-4c99-ae0b-6e9b1b0f6f15",
+    "text": "alcohol: yes | alcoholic",
+    "x0": 0.4193371286639831,
+    "y0": 177.23994434854734,
+    "x1": 589.8007854428517,
+    "y1": 764.1161505598234
   }
 ]
       , "pg8": [
   {
     "id": "37add60b-e1cb-4ba1-9fe6-85b9b0bbc33c",
-    "text": "beverages: beer",
+    "text": "beverages: beer; alcohol: yes | alcoholic",
     "x0": 13.83812615955473,
     "y0": 15.059181224324954,
     "x1": 583.6205452262581,
@@ -124,7 +132,14 @@ if __name__ == "__main__":
 ]
     }
 
-    metadata_parsers = [
+
+    data_parsers_menu_toDB = [
+        r"(?i)(?P<menu_item>.*) - .*\$(?P<price>\d+\.\d{2})"
+        , r"(?i).*Phone:\s*(?P<phone>.*)"
+        , r"(?i)\s*(?P<city>.*)\s*,\s*(?P<state>.*).*(?P<zip>\d{5}(?:-\d{4})?)"
+    ]
+
+    metadata_parsers_menu_toVector = [
         r"(?i)\$(?P<dollars>\d+)\.(?P<cents>\d{2})"
         , r"(?i)\$(?P<price>\d+\.\d{2})"
         , r"(?i)(?P<menu_item>.*) - .*\$\d+\.\d{2}.*"
@@ -132,11 +147,17 @@ if __name__ == "__main__":
         , r"(?i).*(?P<contains_nuts>(peanut|almond|hazelnut))"
         , r"(?i).*(?P<is_spicy>(spicy))"
   ]
-    
-    extracted_data = up.find_text_from_pdf(PDF_FILE_PATH, metadata_boxes, metadata_parsers)
+
+    # TODO: need to put this in config
+    metadata_parsers = metadata_parsers_menu_toVector
+    metadata_boxes = metadata_boxes_toVector
+    #extracted_data = up.extract_text_metadata_from_pdf(PDF_FILE_PATH, metadata_boxes, metadata_parsers)
+
+    data_parsers = data_parsers_menu_toDB
+    extracted_data = up.extract_parsed_text_from_pdf(PDF_FILE_PATH, data_parsers)
 
     if extracted_data:
-        utils.store_in_chromadb(extracted_data, OUTPUT_DB, collection_name=OUTPUT_COLLECTION)
+        #utils.store_in_chromadb(extracted_data, OUTPUT_DB, collection_name=OUTPUT_COLLECTION)
 
         with open(OUTPUT_JSON, "w", encoding="utf-8") as file:
             json.dump(extracted_data, file, indent=4)
