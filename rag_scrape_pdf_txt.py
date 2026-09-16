@@ -143,6 +143,7 @@ if __name__ == "__main__":
         r"(?i)\$(?P<dollars>\d+)\.(?P<cents>\d{2})"
         , r"(?i)\$(?P<price>\d+\.\d{2})"
         , r"(?i)(?P<menu_item>.*) - .*\$\d+\.\d{2}.*"
+        #, r"(?i)(?P<monetary_line>.*.*\$\d+\.\d{2}.*)"
         , r"(?i).*(?P<contains_dairy>(cream|sour cream|cheese|milk|queso|quesa))"
         , r"(?i).*(?P<contains_nuts>(peanut|almond|hazelnut))"
         , r"(?i).*(?P<is_spicy>(spicy))"
@@ -151,10 +152,11 @@ if __name__ == "__main__":
     # TODO: need to put this in config
     metadata_parsers = metadata_parsers_menu_toVector
     metadata_boxes = metadata_boxes_toVector
-    #extracted_data = up.extract_text_metadata_from_pdf(PDF_FILE_PATH, metadata_boxes, metadata_parsers)
+    extracted_data = up.extract_text_metadata_from_pdf(PDF_FILE_PATH, metadata_boxes, metadata_parsers)
 
-    data_parsers = data_parsers_menu_toDB
-    extracted_data = up.extract_parsed_text_from_pdf(PDF_FILE_PATH, data_parsers)
+    data_parsers = metadata_parsers_menu_toVector #data_parsers_menu_toDB
+    #extracted_data = up.extract_parsed_text_from_pdf(PDF_FILE_PATH, data_parsers)
+
 
     if extracted_data:
         #utils.store_in_chromadb(extracted_data, OUTPUT_DB, collection_name=OUTPUT_COLLECTION)

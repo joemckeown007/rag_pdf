@@ -1,7 +1,10 @@
 import re
 import json
+import math
+
 import pdfplumber
 
+# output each page of a pdf as an image
 def convert_pdf_to_imgs(pdf_path, dest_path_base, resolution=72):
     
     with pdfplumber.open(pdf_path) as pdf:
@@ -29,6 +32,8 @@ def convert_pdf_to_imgs(pdf_path, dest_path_base, resolution=72):
 
     
 # https://dev.to/rishabdugar/pdf-extraction-retrieving-text-and-tables-together-using-python-14c2
+# for each page in a pdf, extract tables and create data obj that has cell data associated with the column header
+# TODO: Only tested on a pdf with one table per page
 def find_tables_from_pdf(pdf_path):
     documents = []
     
@@ -41,7 +46,7 @@ def find_tables_from_pdf(pdf_path):
                 # use x/horz boundaries to determine which header column each cell belongs to
                 headers = []
                 for cell in table.rows[0].cells:
-                    # cell format: (x0, y0, x1, y1)
+                    # cell format: (x0, y0, x1, y1) or (l, t, r, b)
                     if cell: 
                         # Extract text within these exact bounds
                         text = page.within_bbox(cell).extract_text()
@@ -52,6 +57,7 @@ def find_tables_from_pdf(pdf_path):
                         })
 
                 data_rows = []
+                # NOTE: starts after the first (header) row
                 for row in table.rows[1:]:  # Limit to first 25 rows for testing purposes
                     row_data = {"menu_item": ""}
                     for cell in row.cells:
@@ -60,6 +66,7 @@ def find_tables_from_pdf(pdf_path):
                             cell_text = page.within_bbox(cell).extract_text()
                             cell_text = cell_text.strip() if cell_text else ""
 
+                            # TODO: this is specific to the Chilis menu
                             row_data["menu_item"] = row_data[ headers[0]["text"] ] if headers[0]["text"] in row_data else "" # Default to first header for menu item
 
                             """
@@ -98,8 +105,10 @@ def find_tables_from_pdf(pdf_path):
     return documents
 
 
-def extract_parsed_text_from_pdf(pdf_path, data_parsers):
-    documents = []
+# for each line of text in a pdf, extract info by applying the data_parsers to the lines
+# also adds a bit of layout/positional info metadata
+def extract_parsed_text_from_pdf(pdf_path, data_parsers, return_all=True):
+    ret_lines = []
 
     # Extract text from PDF
     with pdfplumber.open(pdf_path) as pdf:
@@ -108,23 +117,75 @@ def extract_parsed_text_from_pdf(pdf_path, data_parsers):
                 if(len(lineraw["text"]) == 0):
                     continue
 
-                data = get_data_by_parsers(lineraw, data_parsers)
-                if not data:
+                #HACK: skip header txt for testing
+                if(line_num < -7):
                     continue
 
+                line_data = get_data_by_parsers(lineraw, data_parsers)
+                # NOTE: only lines with data found in the parsers will be processed
+                if not return_all and not line_data:
+                    continue
+
+                # gather data from the chars in the line, usually font info
+                line_top = round(lineraw["top"])
+                line_left = round(lineraw["x0"])
+                filtered_chars = [char for char in page.chars if round(char['top'], 0) == line_top]
+                
+                # Order the filtered characters by font size (size) descending
+                # uses the first char to represent the entire line even though there may be chars in the line
+                # with diff values
                 # add a bit of data from elsewhere
-                data.update({"page": page_num, "line": line_num, "source": pdf_path.lower()})
+                sorted_chars = sorted(filtered_chars, key=lambda x: x["size"], reverse=True)
+                largest_char = sorted_chars[0]
+                line_data.update({
+                    "page": page_num, "line": line_num
+                    , "line_top": line_top , "line_left": line_left
+                    , "line_bottom": round(lineraw["bottom"]) , "line_right": round(lineraw["x1"])
+                    , "font_size": largest_char["size"]
+                    , "font_name": largest_char["fontname"]
+                    , "source": pdf_path.lower()
+                })
 
                 line = lineraw["text"]
                 #print(line)
 
-                documents.append({
+                ret_lines.append({
                     "id": f"pg_{page_num}_ln_{line_num}",
                     "text": line,
-                    "data": data
+                    "data": line_data
                 })
 
-    return documents
+        # add grouping lines by left position as new data point; these capture text indentations on the page and many times reflect a hierarchy, eg, descriptive text for a menu item
+        ret_lines = add_group_linesXindent(ret_lines)
+
+    return ret_lines
+
+
+def add_group_linesXindent(pdfPlumber_lines, group_name="grp_indent_px", tolerance=2) :
+
+    # group lines by left position, usually in pixels at 72 dpi
+    # note the groups allow for some tolerance since things can be off a pixel or two but really belong in the same group
+    # so abs_tol is in integer pixels to specify the tolerance, default to 2
+    # these capture text indentations on the page and many times reflect a hierarchy, eg, descriptive text for a menu item
+
+    grp_list = []
+    for line in pdfPlumber_lines:
+        line_left = line["data"]["line_left"]
+
+        # use an existing grp if close enough, otherwise it will create a new group
+        for grp in grp_list:
+            if math.isclose(grp, line_left, abs_tol=tolerance):
+                line_left = grp
+                break
+
+        # create a new group if need be
+        if line_left not in grp_list:
+            grp_list.append(line_left)
+
+        # add the new grouping data
+        line["data"].update({group_name:line_left}) # TODO: try_to_float?
+
+    return pdfPlumber_lines
 
 
 # tries to find metadata parsers and boxes for every line of text in a pdf
@@ -142,12 +203,12 @@ def extract_text_metadata_from_pdf(pdf_path, metadata_boxes, metadata_parsers):
                 metadata = get_metadata(lineraw, pg_metadata_boxes, metadata_parsers)
                 metadata.update({"page": page_num, "line": line_num, "source": pdf_path.lower()})
 
-                line = lineraw["text"]
+                line_text = lineraw["text"]
                 #print(line)
 
                 documents.append({
                     "id": f"pg_{page_num}_ln_{line_num}",
-                    "row": line,
+                    "row": line_text,
                     "metadata": metadata # name came from the intention for this to be put in a vector DB
                 })
 
@@ -175,12 +236,12 @@ def get_metadata(lineobj, boxes = [], metadata_parsers = []):
 
 # parsers are a list of uncompiled regex pattern strings
 # for each parsing regex patter, check to see if lineobj has any matches and if so, capture the parser's associated data
-def get_data_by_parsers(lineobj, metadata_parsers = []):
+def get_data_by_parsers(lineobj, data_parsers = []):
 
     ret = {} # default dict obj
 
     # pre-compile so it only happens once
-    parsers = [re.compile(pattern) for pattern in metadata_parsers]
+    parsers = [re.compile(pattern) for pattern in data_parsers]
 
     for i, pattern in enumerate(parsers):
         match = re.search(pattern, lineobj["text"])
@@ -233,3 +294,21 @@ def get_data_by_boxes(lineobj, boxes = []):
             ret.update(dict)
 
     return ret
+
+# example code but not used yet
+def x():
+    with pdfplumber.open("./data/in/ChilisMenu.pdf") as pdf:
+        for i, page in enumerate(pdf.pages[:1]):
+            print(f"--- Page {i+1} ---")
+            
+            # Use extract_words to get structural coordinates while keeping metadata
+            words = page.extract_words(extra_attrs=["fontname", "size"])
+            
+            for word in words:
+                # Filter words that match specific criteria (e.g., Large or Bold text)
+                if word["size"] > 14 or "Bold" in word["fontname"]:
+                    print(f"[HEADER/BOLD] {word['text']} (Font: {word['fontname']}, Size: {word['size']:.1f})")
+                else:
+                    print(f"{word['text']} (Font: {word['fontname']}, Size: {word['size']:.1f})")
+                    #print(f"{word['text']}", end=" ")
+            print("\n")
